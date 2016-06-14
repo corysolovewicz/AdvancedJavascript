@@ -1,0 +1,527 @@
+Scope: where to look for things.
+Javascript has function scope only*
+
+Pass through once through the compiler at first.
+Second through the executer.
+
+/* -------------------------------------------------------------------- */
+
+
+
+/*      Compiler      */
+//I see a variable declaration for an identifier called foo
+//which current scope am I in?
+//Global Scope
+//I want to register the foo identfier into my current scope which is the global scope.
+var foo = "bar";
+
+//I see a function declaration with an identifier named bar
+//*we care about the value here since it's a function 
+//We register the function identified as bar in the Global Scope and assign it's contents
+function bar() {
+	//Hey scope of bar, I have a new declaration to declare.
+	//His identfier is foo.
+	var foo = "baz";
+}
+
+//Hey global scope I have a declaration for an idenfier called baz which is a function. Please add to your declaration list. 
+//*Now let's recursively descend into this function baz. 
+//*The named parameter foo will be treated like a local variable.
+//Hey scope of baz I've got a declaration for a variable named foo. 
+function baz(foo) {
+	foo = "bam";
+	bam = "yay";
+}
+
+
+
+/*      Executer       */
+//*vars don't exist in the execution phase. During execution we do assignments.
+/*
+	LHS (Left Hand Side)
+	RHS (Right Hand Side)
+*/
+
+//*foo is our LHS reference (target)
+//*the string value "bar" is RHS value (source)
+
+//Hey Global Scope, I have a LHS for a variable called foo. Have you ever heard of him?
+//Yes I've heard of him and here is the reference. 
+//*assigns RHS value to LHS reference value
+//executer copies immediate value to reference value of foo. 
+
+var foo = "bar";
+
+//*This is a function declaration
+//executer executes function bar
+function bar() {
+	//Hey scope of bar I have LHS reference for a variable called foo. Have you heard of him?
+	//Yes I've heard of him here is the reference.
+	//executer copies immediate value to reference value of foo. 
+	var foo = "baz";
+}
+
+//*This is a function declaration
+//executer executes function baz
+function baz(foo) {
+	//Hey scope of baz I have an LHS reference for a variable (identifier) called foo. Have you heard of him?
+	//Yes it's in my definition as a parameter. Here is the reference.
+	/
+	foo = "bam";
+
+	//Hey scope of baz I have an LHS reference for a variable (identifier) called bam. Have you heard of him?
+	//never heard of him? 
+	//Nope, go fish (go out one level of scope and ask them). 
+	//Hey global scope, do you have a LHS reference for a variable called "bam".
+	//Yes, I've just created him for you since it's a LHS reference. (if it had been a RHS reference we wouldn't have created it for you.)
+	//Here is the reference to your global variable. 
+	bam = "yay";
+}
+
+
+/* -------------------------------------------------------------------- */
+
+
+
+/*     NOTES      */
+//undeclared and undefined are not synonyms
+//*Undeclared is 
+//declarations require a var or a function keyword.
+//undeclared is a variable without one of these keywords
+//it means we are unable to find a proper LHS reference to it in any scopes we have access to. 
+
+//undefined means declared, but has a special "empty value" because it's uninitialized. "undefined" is an actual value. 
+
+
+
+
+
+
+/* -------------------------------------------------------------------- */
+
+
+
+
+/*      Compiler      */
+//Compiler: hey global scope, I have a declaration for a variable for an identifier foo.
+//Scope: Got it, and now it's registered in my scope.
+var foo = "bar";
+
+//Compiler: Hey global scope, I have a function declaration for an identifier bar.
+//Scope: Got it registered, now recursively descend in.  
+function bar() {
+	//Compiler: Hey scope of bar, I have a variable declaration for an identifier foo.
+	//Scope: Got it registered, now recursively descend in.  
+	var foo = "baz";
+
+	//Compiler: Hey scope of bar, I have a function declaration for an identifier baz.
+	//Scope: Got it registered, now recursively descend in.  
+	function baz(foo) {
+		//Compiler: Hey scope of bar, I have an implicit declaration (named parameter) for an identifier foo.
+		foo = "bam";
+		bam = "yay";
+	}
+	baz();
+}
+
+bar();
+foo;
+bam;
+baz();
+
+
+/*      Executer       */
+
+//Execute this line as an operation
+//Executer: Hey Global Scope, I've got a LHS reference for a variable called foo. Ever heard of him?
+//Scope: Yes I have, here is the reference.
+//assignment is made from immediate value. 
+var foo = "bar";
+
+//The functions don't exist any more for the executer because they've been compiled away.
+//these lines will be executed when on the line bar(); 
+function bar() {
+  	//Executer: Hey scope of bar I've an LHS reference identfier foo. Have you heard of him?
+  	//Scope:Yes, here is the reference.
+    //assignment is made from immediate value. 
+	var foo = "baz";
+  	
+
+	function baz(foo) {
+		//Executer: Hey scope of baz I've an LHS reference identfier foo. Have you heard of him?
+  		//Scope:Yes, here is the reference.
+    	//assignment is made from immediate value. 
+		foo = "bam";
+		//Executer: Hey scope of baz I've an LHS reference identfier bam. Have you heard of him?
+  		//Scope:No, go fish.
+  		//Executer: Hey scope of bar I've an LHS reference identfier bam. Have you heard of him?
+  		//Scope:No, go fish.
+  		//Executer: Hey global scope, I've an LHS reference identfier bam. Have you heard of him?
+  		//Scope:Yes, I just made him for you.
+    	//assignment is made from immediate value. 
+		bam = "yay";
+	}
+
+	//Executer: Hey scope of bar I've an RHS reference identifier baz. Have you heard of him?
+	//Scope: Yes I do, and here is the reference to the variable.
+	//Executer goes and retrieves that value. And that value is a function object.
+	//Executer sees the () which so now we will attempt to execute the function we retrieved from the bar variable.
+	//Go to the function declaration and start executing. 
+	baz();
+}
+
+
+//Executer: Hey global scope, I've got a RHS Reference for a variable called bar. (The reason it's an RHS is because it's not an LHS, as there's no assignment being done.)
+//Scope: Yes I do, and here is the reference to the variable.
+//Executer goes and retrieves that value. And that value is a function object.
+//Executer sees the () which so now we will attempt to execute the function we retrieved from the bar variable.
+//Go to the function declaration and start executing. 
+bar();
+
+//Executer: Hey global scope, I have an RHS reference to a variable called foo. Have you heard of him?
+//Scope: Here is his reference.
+foo;  //"bar"
+
+//Executer: Hey global scope, I have an RHS reference to a variable called bam. Have you heard of him?
+//Scope: Here is his reference.
+bam;  //"yay"
+
+//Executer: Hey global scope, I have an RHS reference to a variable called baz. Have you heard of him?
+//Scope: Nope, and since it's an RHS reference we will not create it automatically.
+baz();  //Error
+
+
+
+
+
+/* -------------------------------------------------------------------- */
+Function Declarations vs Function Expressions
+What you need to know: if the function keyword is the very first thing in the statement then it's a function declaration.
+Otherwise it's a function express.
+
+Named function expressions are better than anonymouse function expression.
+
+Named function expressions are not declared in the outer scope. The name is only enclosed within it's own scope.
+
+Function declarations are declared in the outer scope.
+
+Three Major issues with anonymous function expressions compared to named function expressions.
+1) We have no way inside of the function to refer to ourselves. This is an issue with things like recursion. The "This" keyword is not a reference to yourself.
+2) Can't identify anonymous in stacktraces for debugging purposes.
+3) It doesn't self document the code.  
+
+/* ```````````````````````````````````````````````````````````````````` */
+var foo = function bar() {
+	var foo = "baz"; 
+
+	function baz(foo) {
+		foo = bar;
+		foo;    //function....
+	}
+	baz();
+
+};
+
+foo();
+bar();	//Error!
+
+/* -------------------------------------------------------------------- */
+
+Block Scope:
+
+The function isn't the only atomic unit of scope. 
+99% of javascript developers aren't aware that as of ES3 the catch clause is blocked scope.
+Meaning that the variable you declare inside the catch clause can only be accessed inside the catch clause.
+IE6 did screw this up, but fixed in IE7.
+Linters screw this up for "duplicate variable definitions" and will complain about this "err" variable in catch clauses.
+We can just turn off the rule though.
+/* ```````````````````````````````````````````````````````````````````` */
+var foo;
+
+try {
+	foo.length;	
+}
+catch (err) {
+	console.log(err); // TypeError
+}
+
+console.log(err); //Reference Error
+/* -------------------------------------------------------------------- */
+Two predominant models for scoping in javascript
+
+Lexical Scope - most languages deal with. Lexical scope means compile time scope.
+The developer decides what the scope will be.  Scope is decided at author-time.
+
+Dynamic Scope - not present in javascript. ie Bash
+
+
+You can cheat lexical scope using eval keyword. Many people like to pronounce eval as evil.
+eval takes any given string and treats the string contents as code.
+
+When you start "cheating" the javascript compiler can not optimize the looksup.  This causes your code to run slower. 
+Any time the javascript engine sees the eval keyword in your code, it has to assume the scope of the function as well as the global scope, it can't optimize those look ups.
+*As of strict mode, it creates an entirely new scope, when using the eval keyword.
+This allows the compiler to still optimize somewhat.
+
+Rule of Thumb
+If you have to ask whether or not it's ok to use the eval keyword, then don't use it.
+If you need to use it, you already know that.
+
+/* ```````````````````````````````````````````````````````````````````` */
+//eval keyword example
+
+var bar = "bar";
+
+function foo(str) {
+		//modifies the existing lexical scope of foo to add a new declaration to foo at runtime
+		eval(str); //cheating!
+
+		console.log(bar); //42
+}
+
+
+foo ("var bar = 42"); 
+
+/* ```````````````````````````````````````````````````````````````````` */
+There's an even worse way cheat lexical scope with the "with" keywords.
+
+Why is with keyword is even worse than eval?: 
+1) The possibility of creating auto globals. 
+2) Where as the eval keyword modifies an existing lexical scope at runtime,
+the with keyword creates an entirely NEW Lexical scope at runtime. 
+
+So when the compiler sees the With Keyword it assumes the worst. 
+
+*The with keyword in strict mode is not allowed at all. 
+
+/* ```````````````````````````````````````````````````````````````````` */
+var obj = {
+	a:2,
+	b:3,
+	c:4
+};
+
+obj.a = obj.b + obj.c;
+obj.c = obj.b - obj.a;
+
+with (obj){
+	a = b + c;
+	d = b - a;
+	d = 3; // ??
+}
+
+obj.d; //undefined
+d; //3 -- oops!
+/* -------------------------------------------------------------------- */
+ 
+IIFE Pattern (named by ben alman http://benalman.com/)
+Immediately Invoked Function Expression
+One of the most popular patterns in javascript.
+It does not have to be standalone, it can be part of an assignment.
+
+Used when wanting to hide some code in a separate scope, without polluting the outside scope.
+By wrapping the function keyword in parenthises this allows us to create a function expression rather than a function declaration.
+
+//Doug Crockford has a stylistic reason for enclosing the hanging paren (donkey balls)
+//it's essentially the same though. 
+
+Essentially we are putting a function value on to the expression stack by wrapping in a parenthises and then immideately executing it. 
+
+/* ```````````````````````````````````````````````````````````````````` */
+var foo = "foo";
+
+//IIFE Pattern
+
+(function(){
+
+	var foo = "foo2"; 
+	console.log(foo); // "foo2"
+})();
+
+console.log(foo); // "foo"
+
+/* ```````````````````````````````````````````````````````````````````` */
+
+var foo = "foo";
+
+//IIFE Pattern
+
+(function(bar){
+
+	var foo = bar; 
+	console.log(foo); // "foo"
+})(foo);
+
+console.log(foo); // "foo"
+/* -------------------------------------------------------------------- */
+
+
+ES6 let Keyword:
+It's kind of like var by declaring a variable, but attaching ranther instead to the function scope, but to the block instead.
+We are essentially implicitly hijacking our block scoping.
+
+Problems with let keyword:
+1) let keyword does not hoist. This can be solved but putting all your lets at the top of your blocks.
+2) mental tax for re-factoring because of block scoping. 
+3) Implicit scope blocks is usually harder to maintain than explicit scope blocks.
+
+/* ```````````````````````````````````````````````````````````````````` */
+function foo() {
+	var bar = "bar";
+	//if this was a var i the "i" would be attached to the function scope
+	//rather than the for loop block scope.
+ 	for (let i = 0; i < bar.length; i++) {
+		console.log(bar.charAt(i));
+	}
+	console.log(i);
+}
+
+foo();
+/* ```````````````````````````````````````````````````````````````````` */
+function foo(bar) {
+	if (bar) {
+		let baz = bar; //Implicit scope block with let keyword.
+		if (baz) {
+			let bam = baz; //Implicit scope block with let keyword.
+		}
+		console.log(bam); // Error
+	}
+	console.log(baz); // Error
+}
+foo("bar"); 
+
+/* ```````````````````````````````````````````````````````````````````` */
+//This syntax has been rejected by the TC39 Committee
+function foo(bar) {
+	//Explicit scope block with let keyword.
+	let (baz = bar) {  
+		console.log(baz); // "bar"
+	}
+	console.log(baz); // Error
+}
+
+foo ("bar");
+
+/* ```````````````````````````````````````````````````````````````````` */
+//Transpiler called let-er
+//https://github.com/getify/let-er
+
+let (foo) {
+	foo = "foo";
+	console.log(foo); // "foo"
+}
+
+foo; //ReferenceError
+
+//Transpiles to this code 
+try{throw void 0}catch
+/*let*/(foo) {
+	foo = "foo";
+	console.log(foo);
+}
+foo; // Reference Error
+/* -------------------------------------------------------------------- */
+
+
+Dynamic Scoping: Scoping based on the callstack. A totally different model for scoping.
+Lexical scoping is 99.9% of all languages because it's probably superior in some ways.
+The decision for how scoping in dynamic scoping is a runtime decision 
+as opposed to lexical scoping which is an authortime decision.
+
+/* ```````````````````````````````````````````````````````````````````` */
+//theoretical dynamic scoping
+
+function foo() {
+	console.log(bar); //dynamic
+}
+
+function baz() {
+	var bar = "bar";
+	foo();
+}
+
+baz();
+
+/* -------------------------------------------------------------------- */
+QUIZ
+
+1. What type of scoping rule(s) does JavaScript have? Exceptions?
+Lexical Scoping. The exceptions to the rule are when using "eval" and "with" keyword.
+
+
+2. What are the different ways you can create a new scope?
+Functions, catch blocks, curly braces with the let keyword.
+
+3. What's the difference between undeclared and undefined?
+undefined is a value, where as undeclared hasn't been declared yet.
+undefined means currently doesn't have a value so it's a place holder.
+Undefined means explicitly that there definitely was a declared variable. Because if you don't then you will get a reference error.
+
+/* -------------------------------------------------------------------- */
+Hoisting: is a mental construct to explain the behaviors of javascript. 
+/* ```````````````````````````````````````````````````````````````````` */
+//Example 1 - before compile phase
+a;			// ??
+b;          // ??
+var a = b;	
+var b = 2;
+b;			// 2
+a;			// ??
+/* ```````````````````````````````````````````````````````````````````` */
+//Hoisting happens here during compile time.
+//declarations of variables and functions are hoisted to the top because 
+//of the compile phase.
+//So the above code will execute like this. 
+//Example 1 - order of operations after compile phase
+var a;  
+bar b;
+a;		// ???
+b;		// ???
+a = b; 
+b = 2;
+b;		// 2
+a;		// ???
+/* ```````````````````````````````````````````````````````````````````` */
+//Example 2 - before compile phase
+var a = b();
+bar c = d();
+a;				// ???
+c;				// ???
+
+function b() {
+	return c;
+}
+
+var d = function () {
+	return b();
+}
+
+
+/* ```````````````````````````````````````````````````````````````````` */
+//Example 2 - order of operations after compile phase
+function b() {
+	return c;
+}
+var a;
+var c;
+var d;
+a = b();
+c = d();
+a;					// ???
+c;					// ???
+d = function() {
+	return b();
+}
+/* ```````````````````````````````````````````````````````````````````` */
+//Hoisting: functions first
+foo(); // "foo"
+
+var foo = 2;
+
+function foo () {
+	console.log("bar");
+}
+
+funtion foo () {
+	console.log("foo");
+}
