@@ -525,3 +525,270 @@ function foo () {
 funtion foo () {
 	console.log("foo");
 }
+/* -------------------------------------------------------------------- */
+this Keyword
+Every function, while executing, has a reference to its current execution context, called this.
+
+Remember lexical scope vs dynamic scope?
+
+Javascript's version of "dynamic scope" is this.
+
+There are 4 rules for how the this keyword gets bound which depends on the call site.
+
+/* ```````````````````````````````````````````````````````````````````` */
+this: implicit & default binding
+Default Binding Rule
+Fourth rule in order of precedence (Catch All Rule)
+*If you're in strict mode default the "this" keyword to the undefined value
+*If you're not in strict mode default the "this" keyword to the global object
+
+Third of our four binding rules in order of precedence
+*Implicit Binding Rule
+*In JavaScript everything is a reference to an object. Everything is a reference to a funtion. 
+*You can implicitly put a reference to a funcion on an object
+*This allows us to make a reference to a function via the object property reference
+*When there is an object property reference at the call site, the implicit binding rule kicks in. 
+*The base object becomes the this keyword. 
+
+function foo() {
+	console.log(this.bar);
+}
+
+var bar = "bar1";
+var o2 = { bar: "bar2", foo: foo };
+var o3 = { bar: "bar3", foo: foo };
+
+foo();			// "bar1"  *RULE 4
+o2.foo();		// "bar2"  *RULE 3
+o3.foo();		// "bar3"  *RULE 3
+
+/* ```````````````````````````````````````````````````````````````````` */
+
+//This is just another way of showing Rule 3 and Rule 4 in action
+
+var o1 = {
+	bar: "bar1",
+	foo: function() {
+		console.log(this.bar);
+	}
+};
+var o2 = { bar: "bar2", foo: o1.foo };
+
+var bar = "bar3";
+var foo = o1.foo;
+
+o1.foo();			// "bar1"  *RULE 3
+o2.foo();			// "bar2"  *RULE 3
+foo();				// "bar3"  *RULE 4
+
+/* ```````````````````````````````````````````````````````````````````` */
+*Detour from rules to talk about binding confusion
+
+this: binding confusion
+
+//problem
+
+function foo() {
+	var bar = "bar1";
+	baz();
+}
+
+function baz() {
+	console.log(this.bar);
+}
+
+var bar = "bar2";
+foo();				// ??? //bar2 
+
+//posed solution //but this code is actually broken 
+function foo() {
+	var bar = "bar1";
+	this.baz = baz; //*Make a local reference to baz funcion
+	this.baz();     //*invoke baz function as my local context
+}
+
+function baz() {
+	console.log(this.bar);
+}
+
+var bar = "bar2";
+foo();				// ??? //bar2 because the default binding rule applies
+
+//this is an impossible problem to solve because you can't mix
+//The lexical and the dynamic scope
+
+/* ```````````````````````````````````````````````````````````````````` */
+this: explicit binding rule 
+Second rule in order of precedence. 
+*If you use .call or .apply at the call site take as their first parameter a "this" argument 
+*At the call site if there is a call or apply that is explicitly specifying a "this" then use that object for "this"
+
+
+function foo() {
+	console.log(this.bar);
+}
+
+var bar = "bar1";
+var obj = { bar: "bar2" };
+
+foo();			// "bar1"  //default binding rule
+foo.call(obj);	// "bar2"  //explicit binding rule
+/* ```````````````````````````````````````````````````````````````````` */
+*Second detour: A frustrating part of "this" binding mechanism is that the functions are very flexible but aren't exactly predictable when it comes to binding.
+A way to create predictable binding is to take advantage of hard binding.
+
+this: hard binding
+
+function foo() {
+	console.log(this.bar);
+}
+
+var obj = { bar: "bar" };
+var obj2 = { bar: "bar2" };
+
+var orig = foo;
+foo = function(){ orig.call(obj); };
+
+foo();			// "bar"
+foo.call(obj2); // ???  //this is hard bound to obj and will print "bar"
+
+/* ```````````````````````````````````````````````````````````````````` */
+This above code is a little clunky even though it works. Let's create a bind utility to do the same thing.
+
+function bind(fn, o) {
+		return function () {
+			fn.call(o);
+		};
+}
+function foo() {
+	console.log(this.bar);
+}
+
+var obj = { bar: "bar" };
+var obj2 = { bar: "bar2" };
+
+foo = bind(foo,obj);
+
+foo();			// "bar"
+foo.call(obj2);	// ??? 	// "bar"
+
+/* ```````````````````````````````````````````````````````````````````` */
+This yet is still a little clunky because we had to create a global utility called bind.
+Is there a way we could stick it somewhere less global.
+Yes we can put the utility on the function prototype.
+
+if(!Function.prototype.bind2) {
+	Function.prototype.bind2 = 
+		fucntion(o) {
+			var fn = this; // the function!
+			return function() {
+				return fn.apply(o,arguments);
+			};
+		};
+}
+
+function foo(baz) {
+	console.log(this.bar + " " + baz); 
+}
+
+var obj = { bar: "bar" };
+foo = foo.bind2(obj);
+
+foo("baz");				//"bar baz"
+/* ```````````````````````````````````````````````````````````````````` */
+As of ES5 the bind utility is built into JavaScript
+So we don't need our little Bind2 utility, we can just use the built in bind
+Which is much more powerful and provides a polyfill which is highly recommended.
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/bind
+
+if (!Function.prototype.bind) {
+  Function.prototype.bind = function(oThis) {
+    if (typeof this !== 'function') {
+      // closest thing possible to the ECMAScript 5
+      // internal IsCallable function
+      throw new TypeError('Function.prototype.bind - what is trying to be bound is not callable');
+    }
+
+    var aArgs   = Array.prototype.slice.call(arguments, 1),
+        fToBind = this,
+        fNOP    = function() {},
+        fBound  = function() {
+          return fToBind.apply(this instanceof fNOP
+                 ? this
+                 : oThis,
+                 aArgs.concat(Array.prototype.slice.call(arguments)));
+        };
+
+    if (this.prototype) {
+      // Function.prototype doesn't have a prototype property
+      fNOP.prototype = this.prototype; 
+    }
+    fBound.prototype = new fNOP();
+
+    return fBound;
+  };
+}
+
+/* ```````````````````````````````````````````````````````````````````` */
+this: new
+First binding rule in order of precedence
+*Using the new keyword in front of any function call and it creates what the spec may call a "constructor call". 
+Four things occur when using the "new" keyword in front of a function
+1) A BRAND new empty object is created
+2) *This object gets linked to a new object
+3) The new object gets bound as the this keyword for this function call
+4) If this function doesn't otherwise return something then it will implicitly return "this";
+
+function foo() {
+	this.baz = "baz";
+	console.log(this.bar + " " + baz);
+}
+
+var bar = "bar";
+var baz = new foo();		// ???
+baz.baz;		//baz
+
+/* ```````````````````````````````````````````````````````````````````` */
+This code will prove the order of prededence, which are these rules:
+1. Was the function called with the 'new'?
+2. Was the function called with 'call' or 'apply' specifying an explicit this?
+3. Was the function called via a containing/owned object (context)?
+4. DEFAULT: global object (except strict mode)
+ 
+function something() {
+	this.hello = "hello";
+	console.log(this.hello,this.who);
+}
+
+var who = "global", foobar, bazbam,
+	obj1 = { who: "obj1", something: something },
+	obj2 = { who: "obj2" };
+
+something(); // "hello"	"global"
+console.log(hello); // "hello"		<-- OOPS!!!
+
+obj1.something(); // "hello"	"obj1"
+console.log(obj1.hello); // "hello"
+
+obj1.something.call(obj2); // "hello"	"obj2"
+console.log(obj2.hello); // "hello"
+
+foobar = something.bind(obj2);
+foobar(); 	// "hello" "obj2"
+foobar.call(obj1); // "hello" "obj2"
+
+bazbam = new something(); // "hello" "undefined"
+console.log(bazbam.hello); // "hello"
+
+bazbam = new obj1.something(); // "hello" "undefined"
+bazbam = new foobar(); // "hello"	"undefined"
+
+
+
+
+
+
+
+
+
+
